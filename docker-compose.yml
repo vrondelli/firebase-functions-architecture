@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  firebase-emulator:
+    build: .
+    ports:
+      - "8080:8080"
+      - "5001:5001"
+      - "9099:9099"
+      - "9199:9199"
+      - "4000:4000"
+    environment:
+      - FIRESTORE_EMULATOR_HOST=0.0.0.0:8080
+    volumes:
+      - .:/usr/src/app
+    command: >
+      sh -c "
+      firebase emulators:start --only firestore --project firebase-functions-arquitecture
+      "
