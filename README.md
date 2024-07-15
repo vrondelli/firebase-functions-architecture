@@ -201,7 +201,7 @@ export const RecordRepository = (db: Firestore): RecordRepository => RepositoryF
 
 ## Module
 
-O arquivo `module.ts` define o tipo `Module`, que encapsula funções HTTP e triggers. Isso ajuda a organizar e estruturar o código em módulos reutilizáveis.
+O arquivo `module.ts` define o tipo `Module`, que encapsula funções HTTP e triggers. Ajudando a organizar e estruturar o código em módulos reutilizáveis.
 
 ### Exemplo de Uso do Module
 
