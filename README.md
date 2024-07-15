@@ -1,7 +1,3 @@
-### README.md
-
----
-
 # Arquitetura para firebase functions
 
 ## Visão Geral
@@ -178,7 +174,78 @@ export const CallableHandlerFactory = <T, K>(
 };
 ```
 
-Essas factories tornam os handlers agnósticos ao passar o validador e o montador de requisição para a factory, facilitando a mudança para o callable handler.
+Essas factories tornam os handlers agnósticos ao passar o validador e o request assembler para a factory, facilitando a mudança para o callable handler.
+
+
+## Repository Factory
+
+A `RepositoryFactory` cria repositórios baseados no Firestore para operações CRUD.
+
+### Exemplo de Uso do Repository Factory
+
+```
+import { Firestore } from "firebase-admin/firestore";
+import { BaseRepository, RepositoryFactory } from "../../framework/repositoryFactory";
+
+export type Record = {
+  id: string;
+  name: string;
+  increment_id: number;
+}
+
+export const RecordsCollection = 'records';
+export type RecordRepository = BaseRepository<Record>;
+export const RecordRepository = (db: Firestore): RecordRepository => RepositoryFactory<Record>(db, RecordsCollection);
+  
+```
+
+## Module
+
+O arquivo `module.ts` define o tipo `Module`, que encapsula funções HTTP e triggers. Isso ajuda a organizar e estruturar o código em módulos reutilizáveis.
+
+### Exemplo de Uso do Module
+
+```typescript
+import { Firestore } from 'firebase-admin/firestore';
+
+import { CallableHandlerFactory, HttpHandlerFactory, HttpMethods, setIncrementIdTriggerFactory } from '../framework/handlerFactory';
+import { createRecordHandler } from './handlers/createRecord';
+import { RecordRepository, RecordsCollection } from './repositories/recordsRepository';
+import { RecordService } from './services/recordService';
+import { validateCallCreateRecordRequest, validateHttpCreateRecordRequest } from './validators/requestValidator';
+import { assembleCallableCreateRecordRequest, assembleHttpCreateRecordRequest } from './assemblers/requestAssemblers';
+import { Module } from '../framework/module';
+
+export const RecordsModule: Module = (db: Firestore) => {
+  const recordRepository = RecordRepository(db);
+  const recordService = RecordService(recordRepository);
+
+  const createRecord = HttpHandlerFactory(
+    HttpMethods.POST,
+    createRecordHandler(recordService),
+    validateHttpCreateRecordRequest,
+    assembleHttpCreateRecordRequest
+  );
+
+  const callCreateRecord = CallableHandlerFactory(
+    createRecordHandler(recordService),
+    validateCallCreateRecordRequest,
+    assembleCallableCreateRecordRequest
+  );
+
+  const recordSetIncrementId = setIncrementIdTriggerFactory(RecordsCollection, db)
+
+  return {
+    functions: {
+      createRecord,
+      callCreateRecord,
+    },
+    firestoreTriggers: {
+      recordSetIncrementId
+    }
+  };
+};
+```
 
 ## Injeção de Dependência
 
@@ -204,8 +271,23 @@ export const RecordService = (recordRepository: RecordRepository): RecordService
 };
 ```
 
-## Estrutura do Projeto
+## Importando no index.ts
 
-Esta estrutura de projeto organiza o código em módulos lógicos, facilitando o gerenciamento e a escalabilidade. Cada módulo é auto-contido, com seus próprios handlers, serviços e testes.
+Para importar e configurar os módulos no `index.ts`, siga o exemplo abaixo:
 
----
+```typescript
+import * as admin from "firebase-admin";
+
+import { RecordsModule } from "./records/recordsModule";
+
+const app = admin.initializeApp();
+const db = app.firestore();
+
+const {functions: recordFunctions, firestoreTriggers: recordTriggers} = RecordsModule(db);
+
+module.exports = {
+  ...module.exports,
+  ...recordFunctions,
+  ...recordTriggers
+}
+```
