@@ -6,7 +6,7 @@ const firebaseConfig = {
   projectId,
 };
 
-process.env.FIRESTORE_EMULATOR_HOST = '172.25.0.2:8080';
+process.env.FIRESTORE_EMULATOR_HOST = 'localhost:8080';
 
 admin.initializeApp();
 const testEnv = functions(firebaseConfig);
